@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"log"
 	"net"
+	"strings"
 )
 
 const PROTOCOL = "tcp"
@@ -12,16 +14,15 @@ func main() {
 	listener, err := net.Listen(PROTOCOL, PORT)
 
 	if err != nil {
-		panic("Failed to open listener")
+		panic("failed to open listener")
 	}
 
-	log.Println("we have created the listener on", PROTOCOL, PORT)
+	log.Println("listening on", PORT, "using", PROTOCOL)
 
 	for {
-		log.Println("we do be listening")
 		conn, err := listener.Accept()
 		if err != nil {
-			panic("We fucked up while listening")
+			panic("we failed while listening")
 		}
 		go handleConnection(conn)
 	}
@@ -29,5 +30,25 @@ func main() {
 }
 
 func handleConnection(conn net.Conn) {
+	defer conn.Close()
+
 	log.Println("we do be handling the connection")
+
+	buf := make([]byte, 1024)
+
+	n, err := conn.Read(buf)
+
+	requestBuffer := bytes.NewBuffer(buf[:n])
+
+	requestString := strings.TrimSpace(requestBuffer.String()) // remove line feed
+
+	if err != nil {
+		panic("we failed to read the buffer")
+	}
+
+	if requestString == "PING" {
+		conn.Write([]byte("PONG"))
+	} else {
+		conn.Write([]byte("OK"))
+	}
 }
