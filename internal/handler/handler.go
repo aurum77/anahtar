@@ -50,7 +50,7 @@ func (h *Handler) HandleCommand(requestString string) Response {
 			return Response{false, KEY_NOT_FOUND}
 		}
 
-		return Response{false, value + "\n"}
+		return Response{true, value}
 
 	case "SET":
 		if len(stringArray) != 3 {

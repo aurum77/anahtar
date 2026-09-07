@@ -51,7 +51,7 @@ func handleConnection(conn net.Conn, handler *handler.Handler) {
 
 	handlerResponse := handler.HandleCommand(command)
 
-	conn.Write([]byte(handlerResponse.Message))
+	conn.Write([]byte(handlerResponse.Message + "\n"))
 
 }
 
