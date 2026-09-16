@@ -61,7 +61,7 @@ func (h *Handler) HandleCommand(requestString string) Response {
 
 		value := stringArray[2]
 
-		h.store.Set(key, value)
+		h.store.Set(key, value,)
 
 		return Response{true, OK}
 

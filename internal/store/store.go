@@ -2,15 +2,21 @@ package store
 
 import (
 	"sync"
+	"time"
 )
+
+type entry struct {
+	value     string
+	expiresAt time.Time
+}
 
 type Store struct {
 	rwmutex sync.RWMutex
-	storage map[string]string
+	storage map[string]entry
 }
 
 func New() *Store {
-	storage := make(map[string]string)
+	storage := make(map[string]entry)
 	return &Store{storage: storage}
 }
 
@@ -19,17 +25,19 @@ func (s *Store) Get(key string) (string, bool) {
 
 	s.rwmutex.RLock()
 
-	value, ok := s.storage[key]
+	entry, ok := s.storage[key]
 
-	return value, ok
+	return entry.value, ok
 }
 
-func (s *Store) Set(key string, value string) {
+func (s *Store) Set(key string, value string, expiresAt time.Time) {
 	defer s.rwmutex.Unlock()
 
 	s.rwmutex.Lock()
 
-	s.storage[key] = value
+	entry := entry{value, expiresAt}
+
+	s.storage[key] = entry
 }
 
 func (s *Store) Del(key string) bool {
