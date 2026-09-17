@@ -2,6 +2,7 @@ package handler
 
 import (
 	"log"
+	"strconv"
 	"strings"
 
 	"github.com/aurum77/anahtar/internal/store"
@@ -29,15 +30,15 @@ func (h *Handler) HandleCommand(requestString string) Response {
 		return Response{false, INVALID_COMMAND}
 	}
 
-	command := stringArray[0]
+	command := strings.ToLower(stringArray[0])
 
 	log.Printf("COMMAND: %s", command)
 
 	switch command {
-	case "PING":
+	case "ping":
 		return Response{true, PONG}
 
-	case "GET":
+	case "get":
 		if len(stringArray) != 2 {
 			return Response{false, WRONG_ARGUMENT_COUNT}
 		}
@@ -52,7 +53,7 @@ func (h *Handler) HandleCommand(requestString string) Response {
 
 		return Response{true, value}
 
-	case "SET":
+	case "set":
 		if len(stringArray) != 3 {
 			return Response{false, WRONG_ARGUMENT_COUNT}
 		}
@@ -65,7 +66,7 @@ func (h *Handler) HandleCommand(requestString string) Response {
 
 		return Response{true, OK}
 
-	case "DEL":
+	case "del":
 		if len(stringArray) != 2 {
 			return Response{false, WRONG_ARGUMENT_COUNT}
 		}
