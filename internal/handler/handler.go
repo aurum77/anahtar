@@ -4,6 +4,7 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/aurum77/anahtar/internal/store"
 )
@@ -54,7 +55,9 @@ func (h *Handler) HandleCommand(requestString string) Response {
 		return Response{true, value}
 
 	case "set":
-		if len(stringArray) != 3 {
+		var expiry time.Time
+
+		if len(stringArray) != 3 && len(stringArray) != 5 {
 			return Response{false, WRONG_ARGUMENT_COUNT}
 		}
 
@@ -62,7 +65,36 @@ func (h *Handler) HandleCommand(requestString string) Response {
 
 		value := stringArray[2]
 
-		h.store.Set(key, value,)
+		if len(stringArray) == 5 {
+			var multiplier time.Duration
+
+			// ex(seconds) or px(milliseconds)e
+			multiplierType := strings.ToLower(stringArray[3])
+
+			switch multiplierType {
+			case "ex":
+				multiplier = time.Second
+			case "px":
+				multiplier = time.Millisecond
+			default:
+				return Response{false, INVALID_COMMAND}
+			}
+
+			amount, err := strconv.Atoi(stringArray[4])
+
+			if err != nil {
+				log.Printf("ERR: %s", err)
+				return Response{false, INVALID_COMMAND}
+			}
+
+			if amount <= 0 {
+				return Response{false, INVALID_EXPIRE_TIME_IN_SET}
+			}
+
+			expiry = time.Now().Add(time.Duration(amount * int(multiplier)))
+		}
+
+		h.store.Set(key, value, expiry)
 
 		return Response{true, OK}
 
