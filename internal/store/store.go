@@ -27,6 +27,10 @@ func (s *Store) Get(key string) (string, bool) {
 
 	entry, ok := s.storage[key]
 
+	if !entry.expiresAt.IsZero() && time.Now().After(entry.expiresAt) {
+		return "", false
+	}
+
 	return entry.value, ok
 }
 
