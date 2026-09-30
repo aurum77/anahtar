@@ -21,7 +21,9 @@ type Store struct {
 
 func New() *Store {
 	storage := make(map[string]entry)
-	return &Store{storage: storage}
+	store := &Store{storage: storage}
+	go store.sweep()
+	return store
 }
 
 func (s *Store) Get(key string) (string, bool) {
@@ -77,4 +79,24 @@ func (s *Store) Del(key string) bool {
 	delete(s.storage, key)
 
 	return true
+}
+
+func (s *Store) sweep() {
+	ticker := time.NewTicker(1 * time.Second)
+
+	for range ticker.C {
+		s.removeExpired()
+	}
+}
+
+func (s *Store) removeExpired() {
+	defer s.rwmutex.Unlock()
+
+	s.rwmutex.Lock()
+
+	for key, value := range s.storage {
+		if value.isExpired() {
+			delete(s.storage, key)
+		}
+	}
 }
