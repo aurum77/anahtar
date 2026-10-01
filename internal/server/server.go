@@ -1,7 +1,8 @@
 package server
 
 import (
-	"bytes"
+	"bufio"
+	"io"
 	"log"
 	"net"
 	"strings"
@@ -36,23 +37,32 @@ func handleConnection(conn net.Conn, handler *handler.Handler) {
 
 	log.Println("Handling connection")
 
-	buf := make([]byte, 1024) // do 1024 bytes make sense ?
+	reader := bufio.NewReader(conn)
 
-	n, err := conn.Read(buf)
+	for {
+		message, err := reader.ReadString('\n')
 
-	if err != nil {
-		log.Println("Failed to read data from connection")
-		return
+		if err == io.EOF {
+			break
+		}
+
+		if err != nil {
+			log.Println("Read failure")
+			break
+		}
+
+		command := strings.TrimSpace(message) // remove line feed
+
+		handlerResponse := handler.HandleCommand(command)
+
+		_, err = conn.Write([]byte(handlerResponse.Message + "\n"))
+
+		if err != nil {
+			log.Println("Write failure")
+			break
+
+		}
 	}
-
-	requestBuffer := bytes.NewBuffer(buf[:n])
-
-	command := strings.TrimSpace(requestBuffer.String()) // remove line feed
-
-	handlerResponse := handler.HandleCommand(command)
-
-	conn.Write([]byte(handlerResponse.Message + "\n"))
-
 }
 
 func closeConnection(conn net.Conn) {
