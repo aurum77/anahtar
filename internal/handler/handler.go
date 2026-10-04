@@ -22,16 +22,10 @@ func New(s *store.Store) *Handler {
 	return &Handler{store: s}
 }
 
-func (h *Handler) HandleCommand(requestString string) Response {
+func (h *Handler) HandleCommand(commandArray []string) Response {
 	log.Println("Handling command")
 
-	stringArray := strings.Fields(requestString)
-
-	if len(stringArray) == 0 {
-		return Response{false, INVALID_COMMAND}
-	}
-
-	command := strings.ToLower(stringArray[0])
+	command := strings.ToLower(commandArray[0])
 
 	log.Printf("COMMAND: %s", command)
 
@@ -40,11 +34,11 @@ func (h *Handler) HandleCommand(requestString string) Response {
 		return Response{true, PONG}
 
 	case "get":
-		if len(stringArray) != 2 {
+		if len(commandArray) != 2 {
 			return Response{false, WRONG_ARGUMENT_COUNT}
 		}
 
-		key := stringArray[1]
+		key := commandArray[1]
 
 		value, ok := h.store.Get(key)
 
@@ -57,19 +51,19 @@ func (h *Handler) HandleCommand(requestString string) Response {
 	case "set":
 		var expiry time.Time
 
-		if len(stringArray) != 3 && len(stringArray) != 5 {
+		if len(commandArray) != 3 && len(commandArray) != 5 {
 			return Response{false, WRONG_ARGUMENT_COUNT}
 		}
 
-		key := stringArray[1]
+		key := commandArray[1]
 
-		value := stringArray[2]
+		value := commandArray[2]
 
-		if len(stringArray) == 5 {
+		if len(commandArray) == 5 {
 			var multiplier time.Duration
 
 			// ex(seconds) or px(milliseconds)e
-			multiplierType := strings.ToLower(stringArray[3])
+			multiplierType := strings.ToLower(commandArray[3])
 
 			switch multiplierType {
 			case "ex":
@@ -80,7 +74,7 @@ func (h *Handler) HandleCommand(requestString string) Response {
 				return Response{false, INVALID_COMMAND}
 			}
 
-			amount, err := strconv.Atoi(stringArray[4])
+			amount, err := strconv.Atoi(commandArray[4])
 
 			if err != nil {
 				log.Printf("ERR: %s", err)
@@ -99,11 +93,11 @@ func (h *Handler) HandleCommand(requestString string) Response {
 		return Response{true, OK}
 
 	case "del":
-		if len(stringArray) != 2 {
+		if len(commandArray) != 2 {
 			return Response{false, WRONG_ARGUMENT_COUNT}
 		}
 
-		key := stringArray[1]
+		key := commandArray[1]
 
 		ok := h.store.Del(key)
 

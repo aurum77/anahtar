@@ -1,0 +1,4 @@
+SET foo bar
+GET foo
+SET hello world
+GET hello

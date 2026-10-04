@@ -2,12 +2,11 @@ package server
 
 import (
 	"bufio"
-	"io"
 	"log"
 	"net"
-	"strings"
 
 	"github.com/aurum77/anahtar/internal/handler"
+	"github.com/aurum77/anahtar/internal/resp"
 	"github.com/aurum77/anahtar/internal/store"
 )
 
@@ -40,28 +39,23 @@ func handleConnection(conn net.Conn, handler *handler.Handler) {
 	reader := bufio.NewReader(conn)
 
 	for {
-		message, err := reader.ReadString('\n')
+		commandArray := resp.Parse(reader)
 
-		if err == io.EOF {
+		if commandArray == nil {
 			break
-		}
+		} 
+
+		response := handler.HandleCommand(commandArray)
+
+		respResponse := resp.Response(response)
+
+		_, err := conn.Write([]byte(respResponse))
 
 		if err != nil {
-			log.Println("Read failure")
-			break
+			log.Println("Failed to write response")
 		}
 
-		command := strings.TrimSpace(message) // remove line feed
-
-		handlerResponse := handler.HandleCommand(command)
-
-		_, err = conn.Write([]byte(handlerResponse.Message + "\n"))
-
-		if err != nil {
-			log.Println("Write failure")
-			break
-
-		}
+		log.Printf("ok: %t, msg: %s, response: %s", response.Ok, response.Message, respResponse)
 	}
 }
 
