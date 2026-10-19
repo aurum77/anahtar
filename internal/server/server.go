@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"log"
 	"net"
+	"strconv"
 
 	"github.com/aurum77/anahtar/internal/handler"
 	"github.com/aurum77/anahtar/internal/resp"
@@ -39,23 +40,28 @@ func handleConnection(conn net.Conn, handler *handler.Handler) {
 	reader := bufio.NewReader(conn)
 
 	for {
-		commandArray := resp.Parse(reader)
+		parseResult := resp.Parse(reader)
 
-		if commandArray == nil {
+		if parseResult.Commands == nil {
 			break
-		} 
+		}
 
-		response := handler.HandleCommand(commandArray)
+		response := handler.HandleCommand(parseResult.Commands)
 
 		respResponse := resp.Response(response)
 
-		_, err := conn.Write([]byte(respResponse))
+		byteCount, err := conn.Write([]byte(respResponse))
 
-		if err != nil {
-			log.Println("Failed to write response")
+		if byteCount != len(respResponse) {
+			log.Println("Response bytecount doesn't match written bytecount")
 		}
 
-		log.Printf("ok: %t, msg: %s, response: %s", response.Ok, response.Message, respResponse)
+		if err != nil {
+			log.Println("Failed to write response, closing connection")
+			conn.Close()
+		}
+
+		log.Printf("ok: %s, msg: %s, response: %s", strconv.Itoa(response.Type), response.Message, respResponse)
 	}
 }
 

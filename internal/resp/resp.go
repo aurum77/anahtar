@@ -2,26 +2,32 @@ package resp
 
 import (
 	"bufio"
+	"errors"
 	"io"
 	"log"
 	"strconv"
 	"strings"
 
 	"github.com/aurum77/anahtar/internal/handler"
+	"github.com/aurum77/anahtar/internal/resp/responseTypes"
 )
 
-func Parse(reader *bufio.Reader) []string {
+type ParseResult struct {
+	Commands []string
+	Err      error
+}
+
+func Parse(reader *bufio.Reader) ParseResult {
 	var cmdArray []string
 
 	commandCountByte, err := reader.ReadString('\n')
 
 	if err == io.EOF {
-		return nil
+		return ParseResult{Commands: nil, Err: err}
 	}
 
 	if err != nil {
-		log.Println("Read failure")
-		return nil
+		return ParseResult{Commands: nil, Err: err}
 	}
 
 	if strings.HasPrefix(commandCountByte, "*") {
@@ -31,16 +37,14 @@ func Parse(reader *bufio.Reader) []string {
 		commandCount, err := strconv.Atoi(commandCountByte)
 
 		if err != nil {
-			log.Println("Read failure")
-			return nil
+			return ParseResult{Commands: nil, Err: errors.New("Error: Parser read failure")}
 		}
 
 		for range commandCount {
 			argumentLengthByte, err := reader.ReadString('\n')
 
 			if err != nil {
-				log.Println("Read failure")
-				return nil
+				return ParseResult{Commands: nil, Err: errors.New("Error: Parser read failure")}
 			}
 
 			if strings.HasPrefix(argumentLengthByte, "$") {
@@ -50,8 +54,7 @@ func Parse(reader *bufio.Reader) []string {
 				argumentLength, err := strconv.Atoi(argumentLengthByte)
 
 				if err != nil {
-					log.Println("Conversion failure")
-					return nil
+					return ParseResult{Commands: nil, Err: errors.New("Error: Parser conversion failure")}
 				}
 
 				argumentBytes := make([]byte, argumentLength)
@@ -59,8 +62,7 @@ func Parse(reader *bufio.Reader) []string {
 				_, err = io.ReadFull(reader, argumentBytes)
 
 				if err != nil {
-					log.Println("Read failure")
-					return nil
+					return ParseResult{Commands: nil, Err: errors.New("Error: Parser read failure")}
 				}
 
 				crlf := make([]byte, 2)
@@ -68,8 +70,7 @@ func Parse(reader *bufio.Reader) []string {
 				_, err = io.ReadFull(reader, crlf)
 
 				if err != nil {
-					log.Println("Read failure")
-					return nil
+					return ParseResult{Commands: nil, Err: errors.New("Error: Parser read failure")}
 				}
 
 				argument := string(argumentBytes)
@@ -82,20 +83,34 @@ func Parse(reader *bufio.Reader) []string {
 	}
 
 	log.Println(cmdArray)
-	return cmdArray
+	return ParseResult{Commands: cmdArray, Err: nil}
 }
 
 func Response(response handler.Response) string {
 	var responseBuilder strings.Builder
 
-	if response.Ok {
+	switch response.Type {
+	case responseTypes.SimpleString:
 		responseBuilder.WriteString("+")
-	} else {
-		responseBuilder.WriteString("-")
-	}
+		responseBuilder.WriteString(response.Message)
+		responseBuilder.WriteString("\r\n")
 
-	responseBuilder.WriteString(response.Message)
-	responseBuilder.WriteString("\r\n")
+	case responseTypes.BulkString:
+		responseBuilder.WriteString("$")
+		responseBuilder.WriteString(strconv.Itoa(len(response.Message)))
+		responseBuilder.WriteString("\r\n")
+		responseBuilder.WriteString(response.Message)
+		responseBuilder.WriteString("\r\n")
+
+	case responseTypes.Error:
+		responseBuilder.WriteString("-")
+		responseBuilder.WriteString(response.Message)
+		responseBuilder.WriteString("\r\n")
+
+	case responseTypes.Null:
+		responseBuilder.WriteString("$-1")
+		responseBuilder.WriteString("\r\n")
+	}
 
 	return responseBuilder.String()
 }

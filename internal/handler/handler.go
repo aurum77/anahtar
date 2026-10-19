@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aurum77/anahtar/internal/resp/responseTypes"
 	"github.com/aurum77/anahtar/internal/store"
 )
 
@@ -14,7 +15,7 @@ type Handler struct {
 }
 
 type Response struct {
-	Ok      bool
+	Type    int
 	Message string
 }
 
@@ -31,11 +32,11 @@ func (h *Handler) HandleCommand(commandArray []string) Response {
 
 	switch command {
 	case "ping":
-		return Response{true, PONG}
+		return Response{responseTypes.SimpleString, PONG}
 
 	case "get":
 		if len(commandArray) != 2 {
-			return Response{false, WRONG_ARGUMENT_COUNT}
+			return Response{responseTypes.Error, WRONG_ARGUMENT_COUNT}
 		}
 
 		key := commandArray[1]
@@ -43,16 +44,16 @@ func (h *Handler) HandleCommand(commandArray []string) Response {
 		value, ok := h.store.Get(key)
 
 		if !ok {
-			return Response{false, KEY_NOT_FOUND}
+			return Response{responseTypes.Null, ""}
 		}
 
-		return Response{true, value}
+		return Response{responseTypes.BulkString, value}
 
 	case "set":
 		var expiry time.Time
 
 		if len(commandArray) != 3 && len(commandArray) != 5 {
-			return Response{false, WRONG_ARGUMENT_COUNT}
+			return Response{responseTypes.Error, WRONG_ARGUMENT_COUNT}
 		}
 
 		key := commandArray[1]
@@ -71,18 +72,18 @@ func (h *Handler) HandleCommand(commandArray []string) Response {
 			case "px":
 				multiplier = time.Millisecond
 			default:
-				return Response{false, INVALID_COMMAND}
+				return Response{responseTypes.Error, INVALID_COMMAND}
 			}
 
 			amount, err := strconv.Atoi(commandArray[4])
 
 			if err != nil {
 				log.Printf("ERR: %s", err)
-				return Response{false, INVALID_COMMAND}
+				return Response{responseTypes.Error, INVALID_COMMAND}
 			}
 
 			if amount <= 0 {
-				return Response{false, INVALID_EXPIRE_TIME_IN_SET}
+				return Response{responseTypes.Error, INVALID_EXPIRE_TIME_IN_SET}
 			}
 
 			expiry = time.Now().Add(time.Duration(amount * int(multiplier)))
@@ -90,11 +91,11 @@ func (h *Handler) HandleCommand(commandArray []string) Response {
 
 		h.store.Set(key, value, expiry)
 
-		return Response{true, OK}
+		return Response{responseTypes.SimpleString, OK}
 
 	case "del":
 		if len(commandArray) != 2 {
-			return Response{false, WRONG_ARGUMENT_COUNT}
+			return Response{responseTypes.Error, WRONG_ARGUMENT_COUNT}
 		}
 
 		key := commandArray[1]
@@ -102,12 +103,12 @@ func (h *Handler) HandleCommand(commandArray []string) Response {
 		ok := h.store.Del(key)
 
 		if !ok {
-			return Response{false, KEY_NOT_FOUND}
+			return Response{responseTypes.Error, KEY_NOT_FOUND}
 		}
 
-		return Response{true, OK}
+		return Response{responseTypes.SimpleString, OK}
 
 	default:
-		return Response{false, INVALID_COMMAND}
+		return Response{responseTypes.Error, INVALID_COMMAND}
 	}
 }
