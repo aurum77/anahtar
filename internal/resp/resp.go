@@ -37,14 +37,14 @@ func Parse(reader *bufio.Reader) ParseResult {
 		commandCount, err := strconv.Atoi(commandCountByte)
 
 		if err != nil {
-			return ParseResult{Commands: nil, Err: errors.New("Error: Parser read failure")}
+			return ParseResult{Commands: nil, Err: errors.New("Parser read failure")}
 		}
 
 		for range commandCount {
 			argumentLengthByte, err := reader.ReadString('\n')
 
 			if err != nil {
-				return ParseResult{Commands: nil, Err: errors.New("Error: Parser read failure")}
+				return ParseResult{Commands: nil, Err: errors.New("Parser read failure")}
 			}
 
 			if strings.HasPrefix(argumentLengthByte, "$") {
@@ -54,7 +54,7 @@ func Parse(reader *bufio.Reader) ParseResult {
 				argumentLength, err := strconv.Atoi(argumentLengthByte)
 
 				if err != nil {
-					return ParseResult{Commands: nil, Err: errors.New("Error: Parser conversion failure")}
+					return ParseResult{Commands: nil, Err: errors.New("Parser conversion failure")}
 				}
 
 				argumentBytes := make([]byte, argumentLength)
@@ -62,7 +62,7 @@ func Parse(reader *bufio.Reader) ParseResult {
 				_, err = io.ReadFull(reader, argumentBytes)
 
 				if err != nil {
-					return ParseResult{Commands: nil, Err: errors.New("Error: Parser read failure")}
+					return ParseResult{Commands: nil, Err: errors.New("Parser read failure")}
 				}
 
 				crlf := make([]byte, 2)
@@ -70,7 +70,7 @@ func Parse(reader *bufio.Reader) ParseResult {
 				_, err = io.ReadFull(reader, crlf)
 
 				if err != nil {
-					return ParseResult{Commands: nil, Err: errors.New("Error: Parser read failure")}
+					return ParseResult{Commands: nil, Err: errors.New("Parser read failure")}
 				}
 
 				argument := string(argumentBytes)
