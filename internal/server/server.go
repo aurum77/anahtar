@@ -2,6 +2,8 @@ package server
 
 import (
 	"bufio"
+	"errors"
+	"io"
 	"log"
 	"net"
 	"strconv"
@@ -42,7 +44,18 @@ func handleConnection(conn net.Conn, handler *handler.Handler) {
 	for {
 		parseResult := resp.Parse(reader)
 
+		if errors.Is(parseResult.Err, io.EOF) {
+			log.Println("Got EOF, nothing else")
+			break
+		}
+
+		if parseResult.Err != nil {
+			log.Printf("Got error from parser: %s", parseResult.Err)
+			break
+		}
+
 		if parseResult.Commands == nil {
+			log.Println("No commands were parsed")
 			break
 		}
 
@@ -52,13 +65,14 @@ func handleConnection(conn net.Conn, handler *handler.Handler) {
 
 		byteCount, err := conn.Write([]byte(respResponse))
 
-		if byteCount != len(respResponse) {
-			log.Println("Response bytecount doesn't match written bytecount")
+		if err != nil {
+			log.Println("Failed to write response")
+			break
 		}
 
-		if err != nil {
-			log.Println("Failed to write response, closing connection")
-			conn.Close()
+		if byteCount != len(respResponse) {
+			log.Println("Response bytecount doesn't match written bytecount")
+			break
 		}
 
 		log.Printf("ok: %s, msg: %s, response: %s", strconv.Itoa(response.Type), response.Message, respResponse)
