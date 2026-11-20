@@ -115,7 +115,7 @@ func Parse(reader *bufio.Reader) ParseResult {
 	return ParseResult{Commands: cmdArray, Err: nil}
 }
 
-func Response(response handler.Response) string {
+func ConvertResponse(response handler.Response) string {
 	var responseBuilder strings.Builder
 
 	switch response.Type {

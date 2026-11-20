@@ -61,7 +61,7 @@ func handleConnection(conn net.Conn, handler *handler.Handler) {
 
 		response := handler.HandleCommand(parseResult.Commands)
 
-		respResponse := resp.Response(response)
+		respResponse := resp.ConvertResponse(response)
 
 		byteCount, err := conn.Write([]byte(respResponse))
 
